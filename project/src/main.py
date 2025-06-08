@@ -16,7 +16,12 @@ async def read_root(request: Request):
 
 
 @app.post("/upload/")
-async def upload_image(file: UploadFile = File(...)):
+async def upload_image(
+    file: UploadFile = File(...),
+    model: str = Form(None),
+    format: str = Form(None),
+    blur_level: int = Form(47)
+):
     if not file.content_type.startswith("image/"):
         return JSONResponse(
             content={"error": "File is not an image"},
@@ -33,7 +38,7 @@ async def upload_image(file: UploadFile = File(...)):
     }
 
     return RedirectResponse(
-        url=f"/image-info?filename={file.filename}",
+        url=f"/image-info?filename={file.filename}&model={model}&format={format}&blur_level={blur_level}",
         status_code=303
     )
 
@@ -42,10 +47,11 @@ async def upload_image(file: UploadFile = File(...)):
 async def image_info(
     request: Request,
     filename: str,
-    model: str = Form(...),
-    format: str = Form(...),
-    blur_level: int = Form(47)
+    model: str,
+    format: str,
+    blur_level: int
 ):
+    print(model, format, blur_level)
     file_info = uploaded_files.get(filename)
 
     if not file_info:
