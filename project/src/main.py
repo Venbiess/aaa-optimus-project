@@ -4,8 +4,14 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 import base64
 import numpy as np
 import cv2
+import time
+import hashlib
+from torch.cuda import is_available as cuda_is_available
 from src.car_blur import find_car_on_image_and_blur
 
+
+device = 'cuda' if cuda_is_available() else 'cpu'
+HASH_SIZE = 16
 app = FastAPI()
 templates = Jinja2Templates(directory="src/templates")
 uploaded_files = {}
@@ -13,6 +19,13 @@ uploaded_files = {}
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
+
+
+def generate_file_hash(filename: str, file_size: int) -> str:
+    timestamp = str(time.time())
+    data = f"{timestamp}-{filename}-{file_size}"
+    hash_digest = hashlib.sha256(data.encode()).hexdigest()
+    return hash_digest[:HASH_SIZE]
 
 
 @app.post("/upload/")
@@ -29,16 +42,17 @@ async def upload_image(
         )
 
     content = await file.read()
-    file_size = len(content)
 
-    uploaded_files[file.filename] = {
+    unique_id = generate_file_hash(file.filename, len(content))
+    uploaded_files[unique_id] = {
+        "filename": file.filename,
         "content_type": file.content_type,
         "content": content,
-        "file_size": file_size
+        "file_size": len(content)
     }
 
     return RedirectResponse(
-        url=f"/image-info?filename={file.filename}&model={model}&format={format}&blur_level={blur_level}",
+        url=f"/image-info?image_id={unique_id}&model={model}&format={format}&blur_level={blur_level}",
         status_code=303
     )
 
@@ -46,13 +60,14 @@ async def upload_image(
 @app.get("/image-info", response_class=HTMLResponse)
 async def image_info(
     request: Request,
-    filename: str,
+    image_id: str,
     model: str,
     format: str,
     blur_level: int
 ):
+    time_start = time.time()
     print(model, format, blur_level)
-    file_info = uploaded_files.get(filename)
+    file_info = uploaded_files.get(image_id)
 
     if not file_info:
         return HTMLResponse(
@@ -77,9 +92,14 @@ async def image_info(
 
     return templates.TemplateResponse("info.html", {
         "request": request,
-        "filename": filename,
+        "image_id": image_id,
         "content_type": file_info["content_type"],
         "file_size": file_info["file_size"],
         "image": data_uri,
-        "processed_image": result_data_uri
+        "processed_image": result_data_uri,
+        "model": model,
+        "format": format,
+        "blur_level": blur_level,
+        "time_spent": f'{round(time.time() - time_start, 2)} (сек.)',
+        "accelerator": device
     })

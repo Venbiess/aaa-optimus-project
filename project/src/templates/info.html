@@ -132,12 +132,12 @@
                 alt="Processed Image"
             >
             <div class="parameters">
-                <p><strong>Модель:</strong> {{ model }}</p>
-                <p><strong>Формат:</strong> {{ format }}</p>
+                <p><strong>Model:</strong> {{ model }}</p>
+                <p><strong>Time spent:</strong> {{ time_spent }}</p>
                 {% if format == 'blur' %}
-                     <p><strong>Уровень размытия:</strong> {{ blur_level }}</p>
+                     <p><strong>Blur level:</strong> {{ blur_level }}</p>
                 {% endif %}
-                <!-- Добавить другие параметры при необходимости -->
+                <p><strong>Accelerator:</strong> {{ accelerator }}</p>
             </div>
         {% endif %}
 
