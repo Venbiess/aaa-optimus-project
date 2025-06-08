@@ -132,6 +132,48 @@
             color: #888;
         }
 
+        .form-group {
+            width: 100%;
+            margin-bottom: 15px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+            cursor: default; /* Prevent hand cursor on group labels */
+        }
+
+        .form-group select,
+        .form-group input[type="range"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box; /* Include padding and border in element's total width and height */
+            font-family: 'Roboto', sans-serif; /* Use Roboto for form controls */
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            width: 100%;
+        }
+
+        .slider-container input[type="range"] {
+             flex-grow: 1;
+             margin-right: 10px;
+        }
+
+        .slider-value {
+            min-width: 30px; /* Ensure space for value display */
+            text-align: right;
+            font-weight: normal; /* Reset bold font from form-group label */
+        }
+
+
         @media (max-width: 600px) {
             .container {
                 padding: 30px 15px;
@@ -149,7 +191,7 @@
     </nav>
 
     <div class="container">
-        <h1>Форма загрузки изображения</h1>
+        <h1>Обработка изображения</h1>
 
         <img
             src="https://static.tildacdn.com/tild6363-3033-4461-b637-313237623838/Frame_2043682751_1.svg"
@@ -157,35 +199,94 @@
             alt="Preview Image"
         >
 
+        <!-- Форма для загрузки и выбора опций -->
         <form action="/upload" method="post" enctype="multipart/form-data">
             <input type="file" name="file" accept="image/*" id="fileInput" required>
             <label for="fileInput" id="fileLabel" class="btn btn-dark">Выбрать изображение</label>
-            <button type="submit">Отправить</button>
+
+            <div class="form-group">
+                <label for="modelSelect">Выберите модель:</label>
+                <select name="model" id="modelSelect" class="form-select">
+                    <option value="yolo_sam" selected>YOLO + SAM</option>
+                    <option value="unet">UNet</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="formatSelect">Выберите формат обработки:</label>
+                <select name="format" id="formatSelect" class="form-select">
+                    <option value="blur" selected>Блюр (размытие фона)</option>
+                    <option value="background_replace">Замена фона</option>
+                </select>
+            </div>
+
+            <div class="form-group" id="blurOptions" style="display: block;"> <!-- Изначально показываем для блюра -->
+                <label for="blurLevel">Уровень размытия:</label>
+                <div class="slider-container">
+                     <input type="range" name="blur_level" id="blurLevel" min="1" max="101" step="2" value="47">
+                     <span id="blurValue" class="slider-value">47</span>
+                </div>
+                <small class="form-text text-muted">Значение должно быть нечетным.</small>
+            </div>
+
+            <button type="submit" id="submitButton" disabled>Отправить</button> <!-- Изначально кнопка отключена -->
         </form>
 
         <script>
           const fileInput = document.getElementById('fileInput');
           const fileLabel = document.getElementById('fileLabel');
           const previewImage = document.getElementById('previewImage');
+          const submitButton = document.getElementById('submitButton');
+          const formatSelect = document.getElementById('formatSelect');
+          const blurOptions = document.getElementById('blurOptions');
+          const blurLevelInput = document.getElementById('blurLevel');
+          const blurValueSpan = document.getElementById('blurValue');
 
+          // Обновление превью и включение кнопки
           fileInput.addEventListener('change', () => {
             const file = fileInput.files[0];
-            if (!file) return;
+            if (!file) {
+                fileLabel.textContent = 'Выбрать изображение';
+                fileLabel.classList.remove('btn-primary');
+                fileLabel.classList.add('btn-dark');
+                previewImage.src = "https://static.tildacdn.com/tild6363-3033-4461-b637-313237623838/Frame_2043682751_1.svg"; // Reset preview
+                submitButton.disabled = true; // Disable button if no file
+                return;
+            }
 
             fileLabel.textContent = 'Заменить изображение';
             fileLabel.classList.remove('btn-dark');
             fileLabel.classList.add('btn-primary');
+            submitButton.disabled = false; // Enable button if file is selected
+
 
             const reader = new FileReader();
             reader.onload = (e) => {
               const img = new Image();
               img.onload = () => {
+                // Simple preview resize (optional, backend handles actual processing)
                 const canvas = document.createElement('canvas');
-                canvas.width = 300;
-                canvas.height = 300;
+                const MAX_SIZE = 300;
+                let width = img.width;
+                let height = img.height;
+
+                if (width > height) {
+                    if (width > MAX_SIZE) {
+                        height *= MAX_SIZE / width;
+                        width = MAX_SIZE;
+                    }
+                } else {
+                    if (height > MAX_SIZE) {
+                        width *= MAX_SIZE / height;
+                        height = MAX_SIZE;
+                    }
+                }
+                canvas.width = width;
+                canvas.height = height;
+
 
                 const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0, width, height);
 
                 const resizedDataUrl = canvas.toDataURL();
                 previewImage.src = resizedDataUrl;
@@ -194,6 +295,34 @@
             };
             reader.readAsDataURL(file);
           });
+
+          // Показать/скрыть опции блюра в зависимости от выбранного формата
+          formatSelect.addEventListener('change', () => {
+              if (formatSelect.value === 'blur') {
+                  blurOptions.style.display = 'block';
+                  blurLevelInput.required = true; // Make slider required if blur is selected
+              } else {
+                  blurOptions.style.display = 'none';
+                  blurLevelInput.required = false;
+              }
+              // Добавьте здесь логику для других форматов, если они появятся
+              // например, поля для загрузки фона при format === 'background_replace'
+          });
+
+          // Обновление значения ползунка при изменении
+          blurLevelInput.addEventListener('input', () => {
+              let value = parseInt(blurLevelInput.value);
+              // Ensure the value is odd
+              if (value % 2 === 0) {
+                  value = value + (value < parseInt(blurLevelInput.max) ? 1 : -1);
+                  blurLevelInput.value = value; // Update slider position to odd
+              }
+              blurValueSpan.textContent = value;
+          });
+
+           // Ensure initial blur value is displayed
+           blurValueSpan.textContent = blurLevelInput.value;
+
         </script>
 
         <p class="footer-text text-center">© 2025 Академия Аналитиков Авито</p>

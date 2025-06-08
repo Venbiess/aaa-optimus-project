@@ -1,6 +1,8 @@
 /data/
-/project/model_weights/
+/project/model_weights/*
 **/__pycache__/
 **/.ipynb_checkpoints/
 **/wandb/
 **/lightning_logs/
+**/.DS_Store
+**/.idea/

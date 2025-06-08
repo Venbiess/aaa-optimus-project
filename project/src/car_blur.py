@@ -4,7 +4,7 @@ import torch
 import matplotlib.pyplot as plt
 from segment_anything import sam_model_registry, SamPredictor
 from ultralytics import YOLO
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 from src.config import YOLO_MODEL_PATH, SAM_MODEL_PATH
 
 
@@ -15,10 +15,13 @@ sam = sam_model_registry["vit_h"](checkpoint=SAM_MODEL_PATH).to(device)
 sam_predictor = SamPredictor(sam)
 
 
-def read_image(image_path: str) -> np.ndarray:
-    image = cv2.imread(image_path)
-    image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    return image_rgb
+def read_image(image: Union[str, np.ndarray]) -> np.ndarray:
+    if isinstance(image, str):
+        image = cv2.imread(image)
+        image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        return image_rgb
+    else:
+        return image
 
 
 def find_main_car(image: np.ndarray) -> Optional[np.ndarray]:
@@ -82,10 +85,10 @@ def find_car_on_image(image_path: str) -> Optional[Dict[str, np.ndarray]]:
     }
 
 
-def find_car_on_image_and_blur(image_path: str,
+def find_car_on_image_and_blur(image: Union[str, np.ndarray],
                                kernel_size: int = 47
                                ) -> Optional[Dict[str, np.ndarray]]:
-    result = find_car_on_image(image_path)
+    result = find_car_on_image(image)
     image, mask = result['image'], result['mask']
     if mask is None:
         blurred_image = image
