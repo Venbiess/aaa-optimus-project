@@ -1,0 +1,6 @@
+/data/
+/project/weights
+**/__pycache__/
+**/.ipynb_checkpoints/
+**/wandb/
+**/lightning_logs/

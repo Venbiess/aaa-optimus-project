@@ -1,0 +1,21 @@
+name: avito-project-env
+channels:
+  - pytorch
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.11
+  - numpy
+  - pandas
+  - matplotlib
+  - seaborn
+  - jupyterlab
+  - scikit-learn
+  - ipywidgets
+  - tqdm
+  - pytorch
+  - torchvision
+  - torchaudio
+  - pip
+  - pip:
+    - opencv-python
