@@ -5,10 +5,9 @@ import matplotlib.pyplot as plt
 from segment_anything import sam_model_registry, SamPredictor
 from ultralytics import YOLO
 from typing import Dict, Optional
+from config import YOLO_MODEL_PATH, SAM_MODEL_PATH
 
 
-YOLO_MODEL_PATH = '../weights/yolov8n.pt'
-SAM_MODEL_PATH = '../weights/sam_vit_h_4b8939.pth'
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 yolo_model = YOLO(YOLO_MODEL_PATH)

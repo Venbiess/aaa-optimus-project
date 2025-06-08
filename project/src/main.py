@@ -2,9 +2,9 @@ from fastapi import FastAPI, Request, UploadFile, File
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 import base64
+from src.car_blur import find_car_on_image_and_blur
 
 app = FastAPI()
-
 templates = Jinja2Templates(directory="src/templates")
 uploaded_files = {}
 
