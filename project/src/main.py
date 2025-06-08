@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, UploadFile, File
+from fastapi import FastAPI, Request, UploadFile, File, Form
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 import base64
@@ -39,7 +39,13 @@ async def upload_image(file: UploadFile = File(...)):
 
 
 @app.get("/image-info", response_class=HTMLResponse)
-async def image_info(request: Request, filename: str):
+async def image_info(
+    request: Request,
+    filename: str,
+    model: str = Form(...),
+    format: str = Form(...),
+    blur_level: int = Form(47)
+):
     file_info = uploaded_files.get(filename)
 
     if not file_info:
@@ -55,18 +61,12 @@ async def image_info(request: Request, filename: str):
     image_bytes = file_info["content"]
     bytes = np.frombuffer(image_bytes, np.uint8)
     img = cv2.imdecode(bytes, cv2.IMREAD_COLOR)
-    result = find_car_on_image_and_blur(img)['blurred_image']
+    result = find_car_on_image_and_blur(img, kernel_size=blur_level)['blurred_image']
 
     # Кодируем результат обратно в JPEG
-    _, buffer = cv2.imencode('.jpg', result)  # можно '.png' если хочешь PNG
-
-    # Получаем байты
+    _, buffer = cv2.imencode('.jpg', result)
     result_bytes = buffer.tobytes()
-
-    # Кодируем в base64
     base64_result = base64.b64encode(result_bytes).decode('utf-8')
-
-    # Готовим data URI
     result_data_uri = f"data:image/jpeg;base64,{base64_result}"
 
     return templates.TemplateResponse("info.html", {
