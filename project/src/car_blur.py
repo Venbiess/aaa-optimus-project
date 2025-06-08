@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from segment_anything import sam_model_registry, SamPredictor
 from ultralytics import YOLO
 from typing import Dict, Optional
-from config import YOLO_MODEL_PATH, SAM_MODEL_PATH
+from src.config import YOLO_MODEL_PATH, SAM_MODEL_PATH
 
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
