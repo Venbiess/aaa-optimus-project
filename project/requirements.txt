@@ -5,3 +5,7 @@ fastapi
 uvicorn[standard]
 jinja2
 python-multipart
+matplotlib
+numpy
+pandas
+seaborn

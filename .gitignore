@@ -1,5 +1,5 @@
 /data/
-/project/weights
+/project/model_weights/
 **/__pycache__/
 **/.ipynb_checkpoints/
 **/wandb/

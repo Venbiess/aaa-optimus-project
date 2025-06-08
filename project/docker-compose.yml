@@ -1,9 +1,9 @@
 version: '3.8'
 
 services:
-  fastapi-app:
+  optimus-car-app:
     build: .
-    container_name: fastapi-app
+    container_name: optimus-car-app
     ports:
       - "8000:8000"
     volumes:
