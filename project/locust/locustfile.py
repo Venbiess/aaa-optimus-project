@@ -6,6 +6,6 @@ class ModelUser(HttpUser):
 
     @task
     def test_model(self):
-        with open("test_image.jpg", "rb") as f:
+        with open("locust/test_image.jpg", "rb") as f:
             files = {"file": ("test_image.jpg", f, "image/jpeg")}
             self.client.post("/upload", files=files)
