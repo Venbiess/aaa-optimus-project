@@ -3,13 +3,16 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 import base64
+from PIL import Image
 import numpy as np
+import io
 import cv2
 import time
 import hashlib
 from torch.cuda import is_available as cuda_is_available
 from src.config import HASH_SIZE
 from src.car_blur import find_car_on_image_and_blur
+from src.unet import get_unet_mask
 
 
 device = 'cuda' if cuda_is_available() else 'cpu'
@@ -29,6 +32,17 @@ def generate_file_hash(filename: str, file_size: int) -> str:
     data = f"{timestamp}-{filename}-{file_size}"
     hash_digest = hashlib.sha256(data.encode()).hexdigest()
     return hash_digest[:HASH_SIZE]
+
+
+def mask_to_data_uri(mask_array: np.ndarray):
+    mask_uint8 = (mask_array * 255).astype(np.uint8)
+    img = Image.fromarray(mask_uint8, mode='L')
+    buf = io.BytesIO()
+    img.save(buf, format='PNG')
+    buf.seek(0)
+
+    base64_mask = base64.b64encode(buf.read()).decode('utf-8')
+    return f"data:image/png;base64,{base64_mask}"
 
 
 @app.post("/upload/")
@@ -81,16 +95,22 @@ async def image_info(
     base64_data = base64.b64encode(file_info["content"]).decode("utf-8")
     data_uri = f"data:{file_info['content_type']};base64,{base64_data}"
 
-    image_bytes = file_info["content"]
-    bytes = np.frombuffer(image_bytes, np.uint8)
-    img = cv2.imdecode(bytes, cv2.IMREAD_COLOR)
-    result = find_car_on_image_and_blur(img, kernel_size=blur_level)['blurred_image']
+    if ("mask" not in file_info) or (model != file_info["model"]):
+        image_bytes = file_info["content"]
+        bytes = np.frombuffer(image_bytes, np.uint8)
+        img = cv2.imdecode(bytes, cv2.IMREAD_COLOR)
+        result = find_car_on_image_and_blur(img, kernel_size=blur_level, model=model)
 
-    # Кодируем результат обратно в JPEG
-    _, buffer = cv2.imencode('.jpg', result)
-    result_bytes = buffer.tobytes()
-    base64_result = base64.b64encode(result_bytes).decode('utf-8')
-    result_data_uri = f"data:image/jpeg;base64,{base64_result}"
+        # Кодируем результат обратно в JPEG
+        _, buffer = cv2.imencode('.jpg', result['blurred_image'])
+        result_bytes = buffer.tobytes()
+        base64_result = base64.b64encode(result_bytes).decode('utf-8')
+        result_data_uri = f"data:image/jpeg;base64,{base64_result}"
+
+        uploaded_files[image_id]["mask"] = mask_to_data_uri(result['mask'])
+        uploaded_files[image_id]["data_uri"] = result_data_uri
+        uploaded_files[image_id]["time_spent"] = round(time.time() - time_start, 2)
+        uploaded_files[image_id]["model"] = model
 
     return templates.TemplateResponse("info.html", {
         "request": request,
@@ -98,10 +118,11 @@ async def image_info(
         "content_type": file_info["content_type"],
         "file_size": file_info["file_size"],
         "image": data_uri,
-        "processed_image": result_data_uri,
+        "mask": file_info["mask"],
+        "processed_image": file_info["data_uri"],
         "model": model,
         "format": format,
         "blur_level": blur_level,
-        "time_spent": f'{round(time.time() - time_start, 2)} (сек.)',
+        "time_spent": f'{file_info["time_spent"]} (сек.)',
         "accelerator": device
     })

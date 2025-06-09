@@ -4,8 +4,9 @@ import torch
 import matplotlib.pyplot as plt
 from segment_anything import sam_model_registry, SamPredictor
 from ultralytics import YOLO
-from typing import Dict, Optional, Union
+from typing import Dict, Optional, Union, Tuple, Literal
 from src.config import YOLO_MODEL_PATH, SAM_MODEL_PATH
+from src.unet import get_unet_mask
 
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -24,7 +25,7 @@ def read_image(image: Union[str, np.ndarray]) -> np.ndarray:
         return image
 
 
-def find_main_car(image: np.ndarray) -> Optional[np.ndarray]:
+def find_main_car(image: np.ndarray) -> Tuple[Optional[np.ndarray], Optional[np.ndarray]]:
     results = yolo_model(image, verbose=False, device=device)
     max_area = 0
     input_point = None
@@ -55,7 +56,7 @@ def get_mask(image: np.ndarray, input_point: np.ndarray) -> np.ndarray:
 
     areas = [np.sum(mask) for mask in masks]
     best_mask = masks[np.argmax(areas)]
-    return best_mask
+    return best_mask.detach().cpu().numpy()
 
 
 def blur_image(image: np.ndarray,
@@ -70,7 +71,7 @@ def blur_image(image: np.ndarray,
     return blurred_image
 
 
-def find_car_on_image(image_path: str) -> Optional[Dict[str, np.ndarray]]:
+def find_car_on_image(image_path: Union[str, np.ndarray]) -> Optional[Dict[str, np.ndarray]]:
     image = read_image(image_path)
     input_point, bbox = find_main_car(image)
     if input_point is None:
@@ -86,19 +87,25 @@ def find_car_on_image(image_path: str) -> Optional[Dict[str, np.ndarray]]:
 
 
 def find_car_on_image_and_blur(image: Union[str, np.ndarray],
-                               kernel_size: int = 47
+                               kernel_size: int = 47,
+                               model: str = Literal['yolo_sam', 'unet']
                                ) -> Optional[Dict[str, np.ndarray]]:
-    result = find_car_on_image(image)
-    image, mask = result['image'], result['mask']
-    if mask is None:
-        blurred_image = image
-    else:
-        blurred_image = blur_image(image, mask, kernel_size)
-
-    return {
-        'image': image,
-        'input_point': result['input_point'],
-        'bbox': result['bbox'],
-        'mask': mask,
-        'blurred_image': blurred_image
+    result = {
+        'image': read_image(image),
     }
+    if model == 'yolo_sam':
+        model_result = find_car_on_image(result['image'])
+        result['mask'] = model_result['image']
+        result['input_point'] = model_result['input_point']
+        result['bbox'] = model_result['bbox']
+    elif model == 'unet':
+        result['mask'] = get_unet_mask(result['image'])
+    else:
+        raise ValueError(f'Unsupported model: {model}')
+
+    if result['mask'] is None:
+        result['blurred_image'] = image
+    else:
+        result['blurred_image'] = blur_image(image, result['mask'], kernel_size)
+
+    return result
