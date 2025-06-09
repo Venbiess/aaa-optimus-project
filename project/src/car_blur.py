@@ -95,7 +95,7 @@ def find_car_on_image_and_blur(image: Union[str, np.ndarray],
     }
     if model == 'yolo_sam':
         model_result = find_car_on_image(result['image'])
-        result['mask'] = model_result['image']
+        result['mask'] = model_result['mask']
         result['input_point'] = model_result['input_point']
         result['bbox'] = model_result['bbox']
     elif model == 'unet':
