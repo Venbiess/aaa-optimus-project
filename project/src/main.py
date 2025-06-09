@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Request, UploadFile, File, Form
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 import base64
@@ -7,12 +8,14 @@ import cv2
 import time
 import hashlib
 from torch.cuda import is_available as cuda_is_available
+from src.config import HASH_SIZE
 from src.car_blur import find_car_on_image_and_blur
 
 
 device = 'cuda' if cuda_is_available() else 'cpu'
-HASH_SIZE = 16
 app = FastAPI()
+app.mount("/static", StaticFiles(directory="src/static"), name="static")
+
 templates = Jinja2Templates(directory="src/templates")
 uploaded_files = {}
 
@@ -66,7 +69,6 @@ async def image_info(
     blur_level: int
 ):
     time_start = time.time()
-    print(model, format, blur_level)
     file_info = uploaded_files.get(image_id)
 
     if not file_info:

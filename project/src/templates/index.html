@@ -96,6 +96,14 @@
             background-color: #3e8e41;
         }
 
+        button:disabled {
+            background-color: #ccc !important;
+            color: #666 !important;
+            cursor: not-allowed;
+            opacity: 0.6;
+            box-shadow: none;
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
@@ -140,10 +148,12 @@
 
         .form-group label {
             display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-            color: #555;
-            cursor: default; /* Prevent hand cursor on group labels */
+            margin-bottom: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            color: #f0f4f8;
+            font-family: 'Unbounded', 'Roboto', sans-serif;
+            cursor: default;
         }
 
         .form-group select,
@@ -168,9 +178,9 @@
         }
 
         .slider-value {
-            min-width: 30px; /* Ensure space for value display */
+            min-width: 30px;
             text-align: right;
-            font-weight: normal; /* Reset bold font from form-group label */
+            font-weight: normal;
         }
 
 
@@ -205,14 +215,6 @@
             <label for="fileInput" id="fileLabel" class="btn btn-dark">Выбрать изображение</label>
 
             <div class="form-group">
-                <label for="modelSelect">Выберите модель:</label>
-                <select name="model" id="modelSelect" class="form-select">
-                    <option value="yolo_sam" selected>YOLO + SAM</option>
-                    <option value="unet">UNet</option>
-                </select>
-            </div>
-
-            <div class="form-group">
                 <label for="formatSelect">Выберите формат обработки:</label>
                 <select name="format" id="formatSelect" class="form-select">
                     <option value="blur" selected>Блюр (размытие фона)</option>
@@ -220,7 +222,15 @@
                 </select>
             </div>
 
-            <div class="form-group" id="blurOptions" style="display: block;"> <!-- Изначально показываем для блюра -->
+            <div class="form-group">
+                <label for="modelSelect">Выберите модель:</label>
+                <select name="model" id="modelSelect" class="form-select">
+                    <option value="yolo_sam" selected>YOLO + SAM</option>
+                    <option value="unet">UNet</option>
+                </select>
+            </div>
+
+            <div class="form-group" id="blurOptions" style="display: block;">
                 <label for="blurLevel">Уровень размытия:</label>
                 <div class="slider-container">
                      <input type="range" name="blur_level" id="blurLevel" min="1" max="101" step="2" value="47">
@@ -229,7 +239,7 @@
                 <small class="form-text text-muted">Значение должно быть нечетным.</small>
             </div>
 
-            <button type="submit" id="submitButton" disabled>Отправить</button> <!-- Изначально кнопка отключена -->
+            <button type="submit" id="submitButton" disabled>Отправить</button>
         </form>
 
         <script>
@@ -249,22 +259,21 @@
                 fileLabel.textContent = 'Выбрать изображение';
                 fileLabel.classList.remove('btn-primary');
                 fileLabel.classList.add('btn-dark');
-                previewImage.src = "https://static.tildacdn.com/tild6363-3033-4461-b637-313237623838/Frame_2043682751_1.svg"; // Reset preview
-                submitButton.disabled = true; // Disable button if no file
+                previewImage.src = "https://static.tildacdn.com/tild6363-3033-4461-b637-313237623838/Frame_2043682751_1.svg";
+                submitButton.disabled = true;
                 return;
             }
 
             fileLabel.textContent = 'Заменить изображение';
             fileLabel.classList.remove('btn-dark');
             fileLabel.classList.add('btn-primary');
-            submitButton.disabled = false; // Enable button if file is selected
+            submitButton.disabled = false;
 
 
             const reader = new FileReader();
             reader.onload = (e) => {
               const img = new Image();
               img.onload = () => {
-                // Simple preview resize (optional, backend handles actual processing)
                 const canvas = document.createElement('canvas');
                 const MAX_SIZE = 300;
                 let width = img.width;
@@ -296,32 +305,62 @@
             reader.readAsDataURL(file);
           });
 
-          // Показать/скрыть опции блюра в зависимости от выбранного формата
           formatSelect.addEventListener('change', () => {
               if (formatSelect.value === 'blur') {
                   blurOptions.style.display = 'block';
-                  blurLevelInput.required = true; // Make slider required if blur is selected
+                  blurLevelInput.required = true;
               } else {
                   blurOptions.style.display = 'none';
                   blurLevelInput.required = false;
               }
-              // Добавьте здесь логику для других форматов, если они появятся
-              // например, поля для загрузки фона при format === 'background_replace'
           });
 
-          // Обновление значения ползунка при изменении
           blurLevelInput.addEventListener('input', () => {
               let value = parseInt(blurLevelInput.value);
-              // Ensure the value is odd
               if (value % 2 === 0) {
                   value = value + (value < parseInt(blurLevelInput.max) ? 1 : -1);
-                  blurLevelInput.value = value; // Update slider position to odd
+                  blurLevelInput.value = value;
               }
               blurValueSpan.textContent = value;
           });
 
-           // Ensure initial blur value is displayed
            blurValueSpan.textContent = blurLevelInput.value;
+            const modelOptions = {
+                blur: [
+                    { value: 'yolo_sam', text: 'YOLO + SAM' },
+                    { value: 'unet', text: 'UNet' }
+                ],
+                background_replace: [
+                    { value: 'cnn', text: 'PCT-Net Light (CNN)' },
+                    { value: 'vit', text: 'PCT-Net (ViT)'}
+                ]
+            };
+
+            function updateModelOptions(format) {
+                modelSelect.innerHTML = '';
+
+                modelOptions[format].forEach(option => {
+                    const opt = document.createElement('option');
+                    opt.value = option.value;
+                    opt.textContent = option.text;
+                    modelSelect.appendChild(opt);
+                });
+            }
+
+            const modelSelect = document.getElementById('modelSelect');
+            formatSelect.addEventListener('change', () => {
+                const format = formatSelect.value;
+
+                if (format === 'blur') {
+                    blurOptions.style.display = 'block';
+                    blurLevelInput.required = true;
+                } else {
+                    blurOptions.style.display = 'none';
+                    blurLevelInput.required = false;
+                }
+
+                updateModelOptions(format);
+            });
 
         </script>
 
