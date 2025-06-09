@@ -56,7 +56,7 @@ def get_mask(image: np.ndarray, input_point: np.ndarray) -> np.ndarray:
 
     areas = [np.sum(mask) for mask in masks]
     best_mask = masks[np.argmax(areas)]
-    return best_mask.detach().cpu().numpy()
+    return np.array(best_mask)
 
 
 def blur_image(image: np.ndarray,

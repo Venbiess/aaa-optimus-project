@@ -17,7 +17,6 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 unet_model = torch.jit.load(UNET_MODEL_PATH, map_location=device)
 unet_model.eval()
-
 preprocessing_fn = smp.encoders.get_preprocessing_fn(ENCODER, ENCODER_WEIGHTS)
 
 
