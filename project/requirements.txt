@@ -10,6 +10,6 @@ uvicorn[standard]
 jinja2
 python-multipart
 matplotlib
-numpy
+numpy<2
 pandas
 seaborn
