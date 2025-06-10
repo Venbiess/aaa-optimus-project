@@ -12,7 +12,6 @@ import hashlib
 from torch.cuda import is_available as cuda_is_available
 from src.config import HASH_SIZE
 from src.car_blur import find_car_on_image_and_blur
-from src.unet import get_unet_mask
 
 
 device = 'cuda' if cuda_is_available() else 'cpu'
