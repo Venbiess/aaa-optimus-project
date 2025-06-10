@@ -230,6 +230,15 @@
                 </select>
             </div>
 
+            <div class="form-group" id="backgroundOptions" style="display: none;">
+                <label for="backgroundSelect">Выберите фон:</label>
+                <select name="background_id" id="backgroundSelect" class="form-select">
+                    <option value="1">Фон 1</option>
+                    <option value="2">Фон 2</option>
+                    <option value="3">Фон 3</option>
+                </select>
+            </div>
+
             <div class="form-group" id="blurOptions" style="display: block;">
                 <label for="blurLevel">Уровень размытия:</label>
                 <div class="slider-container">
@@ -306,14 +315,20 @@
           });
 
           formatSelect.addEventListener('change', () => {
-              if (formatSelect.value === 'blur') {
-                  blurOptions.style.display = 'block';
-                  blurLevelInput.required = true;
-              } else {
-                  blurOptions.style.display = 'none';
-                  blurLevelInput.required = false;
-              }
-          });
+            const format = formatSelect.value;
+
+            if (format === 'blur') {
+                blurOptions.style.display = 'block';
+                blurLevelInput.required = true;
+                backgroundOptions.style.display = 'none';
+            } else if (format === 'background_replace') {
+                blurOptions.style.display = 'none';
+                blurLevelInput.required = false;
+                backgroundOptions.style.display = 'block';
+            }
+
+            updateModelOptions(format);
+        });
 
           blurLevelInput.addEventListener('input', () => {
               let value = parseInt(blurLevelInput.value);

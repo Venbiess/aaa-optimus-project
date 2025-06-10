@@ -140,7 +140,8 @@ async def background_replace(
     request: Request,
     image_id: str,
     model: str,
-    format: str,
+    background_id: int,
+    format: str
 ):
     time_start = time.time()
     file_info = uploaded_files.get(image_id)
@@ -184,7 +185,7 @@ async def background_replace(
                     },
                     data={
                         "model_type": model,
-                        "background_id": 1,
+                        "background_id": int(background_id),
                     }
                 )
                 img_base64 = base64.b64encode(response.content).decode('utf-8')
