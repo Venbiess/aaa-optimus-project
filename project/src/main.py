@@ -10,8 +10,9 @@ import cv2
 import time
 import hashlib
 from torch.cuda import is_available as cuda_is_available
-from src.config import HASH_SIZE
-from src.car_blur import find_car_on_image_and_blur
+from src.config import HASH_SIZE, COMPOSE_SERVER_URL
+from src.car_blur import find_car_on_image_and_blur, find_car_on_image
+import httpx
 
 
 device = 'cuda' if cuda_is_available() else 'cpu'
@@ -67,14 +68,20 @@ async def upload_image(
         "file_size": len(content)
     }
 
-    return RedirectResponse(
-        url=f"/image-info?image_id={unique_id}&model={model}&format={format}&blur_level={blur_level}",
-        status_code=303
-    )
+    if format == 'blur':
+        return RedirectResponse(
+            url=f"/background-blur?image_id={unique_id}&model={model}&format={format}&blur_level={blur_level}",
+            status_code=303
+        )
+    elif format == 'background_replace':
+        return RedirectResponse(
+            url=f"/background-replace?image_id={unique_id}&model={model}&format={format}",
+            status_code=303
+        )
 
 
-@app.get("/image-info", response_class=HTMLResponse)
-async def image_info(
+@app.get("/background-blur", response_class=HTMLResponse)
+async def background_blur(
     request: Request,
     image_id: str,
     model: str,
@@ -94,7 +101,7 @@ async def image_info(
     base64_data = base64.b64encode(file_info["content"]).decode("utf-8")
     data_uri = f"data:{file_info['content_type']};base64,{base64_data}"
 
-    if ("mask" not in file_info) or (model != file_info["model"]):
+    if ("mask" not in file_info) or (model != file_info["model"]) or (format != file_info["format"]):
         image_bytes = file_info["content"]
         bytes = np.frombuffer(image_bytes, np.uint8)
         img = cv2.imdecode(bytes, cv2.IMREAD_COLOR)
@@ -110,8 +117,9 @@ async def image_info(
         uploaded_files[image_id]["data_uri"] = result_data_uri
         uploaded_files[image_id]["time_spent"] = round(time.time() - time_start, 2)
         uploaded_files[image_id]["model"] = model
+        uploaded_files[image_id]["format"] = format
 
-    return templates.TemplateResponse("info.html", {
+    return templates.TemplateResponse("replace_info.html", {
         "request": request,
         "image_id": image_id,
         "content_type": file_info["content_type"],
@@ -122,6 +130,72 @@ async def image_info(
         "model": model,
         "format": format,
         "blur_level": blur_level,
+        "time_spent": f'{file_info["time_spent"]} (сек.)',
+        "accelerator": device
+    })
+
+
+@app.get("/background-replace", response_class=HTMLResponse)
+async def background_replace(
+    request: Request,
+    image_id: str,
+    model: str,
+    format: str,
+):
+    time_start = time.time()
+    file_info = uploaded_files.get(image_id)
+
+    if not file_info:
+        return HTMLResponse(
+            content="<h1>File not found!</h1>",
+            status_code=404
+        )
+
+    # Формируем Data URI
+    base64_data = base64.b64encode(file_info["content"]).decode("utf-8")
+    data_uri = f"data:{file_info['content_type']};base64,{base64_data}"
+
+    if ("mask" not in file_info) or (model != file_info["model"]) or (format != file_info["format"]):
+        image_bytes = file_info["content"]
+        bytes = np.frombuffer(image_bytes, np.uint8)
+        img = cv2.imdecode(bytes, cv2.IMREAD_COLOR)
+        result = find_car_on_image(img)
+
+        # Кодируем результат обратно в JPEG
+        _, buffer = cv2.imencode('.png', (result['mask']).astype(np.uint8))
+        result_bytes = buffer.tobytes()
+        base64_result = base64.b64encode(result_bytes).decode('utf-8')
+        result_data_uri = f"data:image/png;base64,{base64_result}"
+
+        uploaded_files[image_id]["mask"] = mask_to_data_uri(result['mask'])
+        uploaded_files[image_id]["data_uri"] = result_data_uri
+        uploaded_files[image_id]["time_spent"] = round(time.time() - time_start, 2)
+        uploaded_files[image_id]["model"] = model
+        uploaded_files[image_id]["format"] = format
+
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.post(
+                    COMPOSE_SERVER_URL,
+                    files={
+                        "foreground": ("image.jpg", image_bytes, "image/jpeg"),
+                        "mask": ("mask.png", result_bytes, "image/png")
+                    }
+                )
+                img_base64 = base64.b64encode(response.content).decode('utf-8')
+                processed_image_data_uri = f"data:image/png;base64,{img_base64}"
+                print(f"External server response: {response.status_code} {response.text}")
+            except httpx.RequestError as exc:
+                print(f"An error occurred while sending to external server: {exc}")
+
+    return templates.TemplateResponse("replace_info.html", {
+        "request": request,
+        "image_id": image_id,
+        "content_type": file_info["content_type"],
+        "file_size": file_info["file_size"],
+        "processed_image": processed_image_data_uri,
+        "model": model,
+        "format": format,
         "time_spent": f'{file_info["time_spent"]} (сек.)',
         "accelerator": device
     })

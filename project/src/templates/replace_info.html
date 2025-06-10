@@ -127,18 +127,10 @@
             <div class="success-message">
                  Обработка успешно выполнена!
             </div>
-{#             <img#}
-{#                src="{{ processed_image }}"#}
-{#                alt="Processed Image"#}
-{#            >#}
-
-            <img id="sourceImage" src="{{ image }}" style="display:none;" />
-            <img id="maskImage" src="{{ mask }}" style="display:none;" />
-            <canvas id="resultCanvas"></canvas>
-
-            <input type="range" id="blurSlider" min="1" max="101" step="2" value="25">
-            <span id="blurValue">25</span>
-
+             <img
+                src="{{ processed_image }}"
+                alt="Processed Image"
+            >
             <div class="parameters">
                 <p><strong>Model:</strong> {{ model }}</p>
                 <p><strong>Time spent:</strong> {{ time_spent }}</p>
@@ -151,88 +143,7 @@
 
         <p class="footer-text text-center">© 2025 Академия Аналитиков Авито</p>
     </div>
-    <script>
-        const sourceImage = document.getElementById('sourceImage');
-        const maskImage = document.getElementById('maskImage');
-        const resultCanvas = document.getElementById('resultCanvas');
-        const ctx = resultCanvas.getContext('2d');
 
-        // Ждём когда sourceImage загрузится
-        const MAX_CANVAS_SIZE = 450;
-
-        sourceImage.addEventListener('load', () => {
-            let width = sourceImage.naturalWidth;
-            let height = sourceImage.naturalHeight;
-
-            if (width > height) {
-                if (width > MAX_CANVAS_SIZE) {
-                    height = height * (MAX_CANVAS_SIZE / width);
-                    width = MAX_CANVAS_SIZE;
-                }
-            } else {
-                if (height > MAX_CANVAS_SIZE) {
-                    width = width * (MAX_CANVAS_SIZE / height);
-                    height = MAX_CANVAS_SIZE;
-                }
-            }
-
-            resultCanvas.width = width;
-            resultCanvas.height = height;
-
-            drawWithBlur(currentBlurValue);
-        });
-
-
-        // Ползунок
-        const blurSlider = document.getElementById('blurSlider');
-        const blurValue = document.getElementById('blurValue');
-        let currentBlurValue = parseInt(blurSlider.value);
-
-        blurSlider.addEventListener('input', () => {
-            currentBlurValue = parseInt(blurSlider.value);
-            blurValue.textContent = currentBlurValue;
-            drawWithBlur(currentBlurValue);
-        });
-
-function drawWithBlur(blurAmount) {
-    ctx.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
-
-    // Нарисовать размытую версию исходного изображения на весь canvas
-    ctx.filter = `blur(${blurAmount}px)`;
-    ctx.drawImage(sourceImage, 0, 0, resultCanvas.width, resultCanvas.height);
-    ctx.filter = 'none';
-
-    // Создаем временный canvas для маски
-    const maskCanvas = document.createElement('canvas');
-    maskCanvas.width = resultCanvas.width;
-    maskCanvas.height = resultCanvas.height;
-    const maskCtx = maskCanvas.getContext('2d');
-
-    // Нарисуем маску на временном canvas
-    maskCtx.drawImage(maskImage, 0, 0, maskCanvas.width, maskCanvas.height);
-
-    // Получаем данные маски
-    const maskData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
-    const imageData = ctx.getImageData(0, 0, resultCanvas.width, resultCanvas.height);
-
-    // Применяем маску как альфа-канал к блюреному изображению
-    for (let i = 0; i < maskData.data.length; i += 4) {
-        // Используем канал альфа маски (maskData.data[i+3])
-        // Если маска черная (альфа ~0), делаем прозрачным блюреный пиксель (альфа 0)
-        // Если белая (альфа 255) — оставляем блюреный пиксель полностью непрозрачным (альфа 255)
-        imageData.data[i + 3] = maskData.data[i + 3];
-    }
-    ctx.putImageData(imageData, 0, 0);
-
-    // Рисуем исходное изображение поверх (не размытое)
-    ctx.globalCompositeOperation = 'destination-over';
-    ctx.drawImage(sourceImage, 0, 0, resultCanvas.width, resultCanvas.height);
-
-    // Восстанавливаем нормальный режим
-    ctx.globalCompositeOperation = 'source-over';
-}
-
-
-    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   </body>
 </html>

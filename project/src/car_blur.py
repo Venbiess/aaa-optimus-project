@@ -71,8 +71,8 @@ def blur_image(image: np.ndarray,
     return blurred_image
 
 
-def find_car_on_image(image_path: Union[str, np.ndarray]) -> Optional[Dict[str, np.ndarray]]:
-    image = read_image(image_path)
+def find_car_on_image(image: Union[str, np.ndarray]) -> Optional[Dict[str, np.ndarray]]:
+    image = read_image(image)
     input_point, bbox = find_main_car(image)
     if input_point is None:
         mask = None
