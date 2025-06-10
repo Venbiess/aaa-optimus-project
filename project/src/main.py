@@ -113,11 +113,11 @@ async def background_blur(
         base64_result = base64.b64encode(result_bytes).decode('utf-8')
         result_data_uri = f"data:image/jpeg;base64,{base64_result}"
 
-        uploaded_files[image_id]["mask"] = mask_to_data_uri(result['mask'])
-        uploaded_files[image_id]["data_uri"] = result_data_uri
-        uploaded_files[image_id]["time_spent"] = round(time.time() - time_start, 2)
-        uploaded_files[image_id]["model"] = model
-        uploaded_files[image_id]["format"] = format
+        file_info["mask"] = mask_to_data_uri(result['mask'])
+        file_info["data_uri"] = result_data_uri
+        file_info["time_spent"] = round(time.time() - time_start, 2)
+        file_info["model"] = model
+        file_info["format"] = format
 
     return templates.TemplateResponse("replace_info.html", {
         "request": request,
@@ -167,11 +167,11 @@ async def background_replace(
         base64_result = base64.b64encode(result_bytes).decode('utf-8')
         result_data_uri = f"data:image/png;base64,{base64_result}"
 
-        uploaded_files[image_id]["mask"] = mask_to_data_uri(result['mask'])
-        uploaded_files[image_id]["data_uri"] = result_data_uri
-        uploaded_files[image_id]["time_spent"] = round(time.time() - time_start, 2)
-        uploaded_files[image_id]["model"] = model
-        uploaded_files[image_id]["format"] = format
+        file_info["mask"] = mask_to_data_uri(result['mask'])
+        file_info["data_uri"] = result_data_uri
+        file_info["time_spent"] = round(time.time() - time_start, 2)
+        file_info["model"] = model
+        file_info["format"] = format
         processed_image_data_uri = None
 
         async with httpx.AsyncClient() as client:
@@ -180,12 +180,16 @@ async def background_replace(
                     COMPOSE_SERVER_URL,
                     files={
                         "foreground": ("image.jpg", image_bytes, "image/jpeg"),
-                        "mask": ("mask.png", result_bytes, "image/png")
+                        "mask": ("mask.png", result_bytes, "image/png"),
+                    },
+                    data={
+                        "model_type": model,
+                        "background_id": 1,
                     }
                 )
                 img_base64 = base64.b64encode(response.content).decode('utf-8')
                 processed_image_data_uri = f"data:image/png;base64,{img_base64}"
-                print(f"External server response: {response.status_code} {response.text}")
+                file_info["processed_image"] = processed_image_data_uri
             except httpx.RequestError as exc:
                 print(f"An error occurred while sending to external server: {exc}")
 
@@ -194,7 +198,7 @@ async def background_replace(
         "image_id": image_id,
         "content_type": file_info["content_type"],
         "file_size": file_info["file_size"],
-        "processed_image": processed_image_data_uri,
+        "processed_image": file_info["processed_image"],
         "model": model,
         "format": format,
         "time_spent": f'{file_info["time_spent"]} (сек.)',
