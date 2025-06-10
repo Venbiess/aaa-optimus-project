@@ -50,7 +50,8 @@ async def upload_image(
     file: UploadFile = File(...),
     model: str = Form(None),
     format: str = Form(None),
-    blur_level: int = Form(47)
+    blur_level: int = Form(47),
+    background_id: str = Form(1),
 ):
     if not file.content_type.startswith("image/"):
         return JSONResponse(
@@ -75,7 +76,7 @@ async def upload_image(
         )
     elif format == 'background_replace':
         return RedirectResponse(
-            url=f"/background-replace?image_id={unique_id}&model={model}&format={format}",
+            url=f"/background-replace?image_id={unique_id}&model={model}&format={format}&background_id={background_id}",
             status_code=303
         )
 
@@ -152,10 +153,6 @@ async def background_replace(
             status_code=404
         )
 
-    # Формируем Data URI
-    base64_data = base64.b64encode(file_info["content"]).decode("utf-8")
-    data_uri = f"data:{file_info['content_type']};base64,{base64_data}"
-
     if ("mask" not in file_info) or (model != file_info["model"]) or (format != file_info["format"]):
         image_bytes = file_info["content"]
         bytes = np.frombuffer(image_bytes, np.uint8)
@@ -173,7 +170,7 @@ async def background_replace(
         file_info["time_spent"] = round(time.time() - time_start, 2)
         file_info["model"] = model
         file_info["format"] = format
-        processed_image_data_uri = None
+        file_info["processed_image"] = None
 
         async with httpx.AsyncClient() as client:
             try:
