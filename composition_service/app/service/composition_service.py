@@ -2,6 +2,7 @@ import torch
 import numpy as np
 import cv2
 import os
+import json
 
 from iharm.inference.predictor import Predictor
 from iharm.inference.utils import load_model
@@ -31,7 +32,7 @@ class CompositionService:
 
         # loading the preset backgrounds
         image_folder = 'app/images/backgrounds'
-        self.backgrounds = []
+        self.backgrounds = dict()
 
         # Read all .png files from the folder
         for filename in os.listdir(image_folder):
@@ -39,10 +40,13 @@ class CompositionService:
                 img_path = os.path.join(image_folder, filename)
                 img = cv2.imread(img_path, cv2.IMREAD_COLOR)
                 if img is not None:
-                    self.backgrounds.append(img.astype(np.uint8))
+                    self.backgrounds[filename.split('.')[0]] = img.astype(np.uint8)
+        
+        with open(image_folder + '/bbox_config.json', 'r') as f:
+            self.bbox_config = json.load(f)
 
 
-    def compose(self, foreground:np.array, mask:np.array, background_id:int=1, model_type:str='cnn'):
+    def compose(self, foreground:np.array, mask:np.array, background_id:int=1, model_type:str='vit'):
         """
         Composes the foreground image onto a background using a binary mask and harmonizes it.
 
@@ -50,23 +54,26 @@ class CompositionService:
             foreground (np.array): Foreground image in OpenCV format.
             mask (np.array): Binary mask of the foreground.
             background_id (int): Index of the background to use (1-based).
-            model_type (str): Type of harmonization model ('cnn' or 'vit').
+            model_type (str): Type of harmonization model ('none', 'cnn' or 'vit').
 
         Returns:
             np.array: The harmonized composite image.
         """
         # getting the background
-        assert 0 < background_id <= len(self.backgrounds), 'invalid background id'
-        background = self.backgrounds[background_id - 1]
+        background = self.backgrounds[str(background_id)]
         # calcuating the bbox
-        bbox = compute_bbox_coordinates(mask, background)
-        # blending the images
-        comp_img, comp_mask = gaussian_composite_image(background, foreground, mask, bbox, kernel_size=9)
+        bbox_conf = self.bbox_config.get(str(background_id), dict())
+        bbox = compute_bbox_coordinates(mask, background,
+                                        **bbox_conf)
+        # blending the image
+        comp_img, comp_mask = gaussian_composite_image(background, foreground, mask, bbox, kernel_size=5)
         # harmonizing the foreground
         comp_mask = (comp_mask > 127).astype(np.uint8)
         comp_lr = cv2.resize(comp_img, (256, 256))
         mask_lr = cv2.resize(comp_mask, (256, 256))
-        if model_type == 'cnn':
+        if model_type == 'none':
+            pred_img = comp_img
+        elif model_type == 'cnn':
             _, pred_img = self.predictor_cnn.predict(comp_lr, comp_img, mask_lr, comp_mask)
         elif model_type == 'vit':
             _, pred_img = self.predictor_vit.predict(comp_lr, comp_img, mask_lr, comp_mask)
