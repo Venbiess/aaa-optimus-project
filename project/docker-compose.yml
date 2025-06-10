@@ -14,15 +14,28 @@ services:
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility,video
 
+  composition_service:
+    build:
+      context: ./composition_service
+    container_name: composition_service
+    ports:
+      - "8016:8000"
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility,video
+
   locust:
     image: locustio/locust
     container_name: locust
     ports:
       - "444:8089"
     volumes:
-      - ./locust:/mnt/locust  # Путь к вашим тестам Locust, создайте папку locust рядом с docker-compose.yml и положите туда файлы тестов
+      - .:/app
+    working_dir: /app
+    depends_on:
+      - optimus-car-app
     command: >
-      -f /mnt/locust/locustfile.py
-      --host=http://optimus-car-app:8000
+      -f /app/locust/locustfile.py
+      --host=http://0.0.0.0:8000
       --web-port=8089
-      --headless

@@ -172,6 +172,7 @@ async def background_replace(
         uploaded_files[image_id]["time_spent"] = round(time.time() - time_start, 2)
         uploaded_files[image_id]["model"] = model
         uploaded_files[image_id]["format"] = format
+        processed_image_data_uri = None
 
         async with httpx.AsyncClient() as client:
             try:

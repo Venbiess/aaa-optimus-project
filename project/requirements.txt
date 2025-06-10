@@ -1,4 +1,3 @@
---extra-index-url https://download.pytorch.org/whl/cu121
 torch==2.2.0
 segment-anything
 ultralytics
@@ -15,3 +14,9 @@ pandas
 seaborn
 locust
 httpx
+easydict
+einops
+kornia
+pytorch_msssim
+tensorboard
+tqdm
