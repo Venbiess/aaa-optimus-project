@@ -14,9 +14,3 @@ pandas
 seaborn
 locust
 httpx
-easydict
-einops
-kornia
-pytorch_msssim
-tensorboard
-tqdm
