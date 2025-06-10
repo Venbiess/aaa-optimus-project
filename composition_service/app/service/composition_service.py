@@ -12,6 +12,10 @@ from app.service.compose import gaussian_composite_image
 
 class CompositionService:
     def __init__(self):
+        """
+        Initializes the CompositionService by loading CNN and ViT harmonization models
+        and all available background images.
+        """
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
         # loading both models
@@ -39,6 +43,18 @@ class CompositionService:
 
 
     def compose(self, foreground:np.array, mask:np.array, background_id:int=1, model_type:str='cnn'):
+        """
+        Composes the foreground image onto a background using a binary mask and harmonizes it.
+
+        Args:
+            foreground (np.array): Foreground image in OpenCV format.
+            mask (np.array): Binary mask of the foreground.
+            background_id (int): Index of the background to use (1-based).
+            model_type (str): Type of harmonization model ('cnn' or 'vit').
+
+        Returns:
+            np.array: The harmonized composite image.
+        """
         # getting the background
         assert 0 < background_id <= len(self.backgrounds), 'invalid background id'
         background = self.backgrounds[background_id - 1]

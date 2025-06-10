@@ -12,6 +12,21 @@ comp_service = CompositionService()
 
 @app.post("/compose")
 async def compose(foreground: UploadFile = File(...), mask: UploadFile = File(...), model_type: str = 'cnn', background_id: int = 1):
+    """
+    Composes a foreground image onto a selected background using a binary mask and harmonizes the result.
+    
+    Args:
+        foreground (UploadFile): The uploaded foreground image.
+        mask (UploadFile): The binary mask indicating foreground regions.
+        model_type (str): The model type to use for harmonization ('cnn' or 'vit').
+        background_id (int): The ID of the background image to use. Starts with 1
+
+    Returns:
+        StreamingResponse: A PNG image of the composed and harmonized result.
+    
+    Raises:
+        HTTPException: If file types are invalid or image processing fails.
+    """
     if not foreground.content_type.startswith('image/') or not mask.content_type.startswith('image/'):
         raise HTTPException(status_code=415, detail="Unsupported file type. Please upload image files.")
 
