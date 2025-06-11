@@ -179,7 +179,7 @@ async def background_replace(
                         "foreground": ("image.jpg", image_bytes, "image/jpeg"),
                         "mask": ("mask.png", result_bytes, "image/png"),
                     },
-                    data={
+                    params={
                         "model_type": model,
                         "background_id": int(background_id),
                     }
