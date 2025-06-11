@@ -167,7 +167,6 @@ async def background_replace(
 
         file_info["mask"] = mask_to_data_uri(result['mask'])
         file_info["data_uri"] = result_data_uri
-        file_info["time_spent"] = round(time.time() - time_start, 2)
         file_info["model"] = model
         file_info["format"] = format
         file_info["processed_image"] = None
@@ -185,12 +184,14 @@ async def background_replace(
                         "background_id": int(background_id),
                     }
                 )
+
                 img_base64 = base64.b64encode(response.content).decode('utf-8')
                 processed_image_data_uri = f"data:image/png;base64,{img_base64}"
                 file_info["processed_image"] = processed_image_data_uri
             except httpx.RequestError as exc:
                 print(f"An error occurred while sending to external server: {exc}")
 
+    file_info["time_spent"] = round(time.time() - time_start, 2)
     return templates.TemplateResponse("replace_info.html", {
         "request": request,
         "image_id": image_id,
