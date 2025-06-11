@@ -14,7 +14,7 @@ RUN apt install -y  bash \
 RUN apt-get install -y ffmpeg libsm6 libxext6
 
 RUN python3 -m pip install --upgrade pip
-RUN python3 -m pip install torch==1.12.0+cu116 torchvision==0.13.0+cu116 -f https://download.pytorch.org/whl/torch_stable.html
+RUN python3 -m pip install torch==1.12.0 torchvision==0.13.0 -f https://download.pytorch.org/whl/torch_stable.html
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
