@@ -27,3 +27,5 @@
 - Метрики YOLO + SAM:
   - IoU (Intersection Over Union): 0.95
   - Accuracy: 0.981
+
+Ноутбуки с анализом данных, обучением модели и расчетом метрик находятся [здесь](https://github.com/Venbiess/aaa-optimus-project/tree/main/project/notebooks)
