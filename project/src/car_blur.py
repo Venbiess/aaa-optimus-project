@@ -11,9 +11,13 @@ from src.unet import get_unet_mask
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-yolo_model = YOLO(YOLO_MODEL_PATH)
-sam = sam_model_registry["vit_h"](checkpoint=SAM_MODEL_PATH).to(device)
-sam_predictor = SamPredictor(sam)
+try:
+    yolo_model = YOLO(YOLO_MODEL_PATH)
+    sam = sam_model_registry["vit_h"](checkpoint=SAM_MODEL_PATH).to(device)
+    sam_predictor = SamPredictor(sam)
+except Exception as e:
+    print(e)
+    print('SAM or YOLO model not found')
 
 
 def read_image(image: Union[str, np.ndarray]) -> np.ndarray:

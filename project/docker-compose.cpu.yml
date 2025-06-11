@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  optimus-car-app:
+    build: .
+    container_name: optimus-car-app
+    ports:
+      - "443:8000"
+    volumes:
+      - .:/app
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+
+  composition_service:
+    build:
+      context: ./composition_service
+    container_name: composition_service
+    ports:
+      - "8016:8000"
+
+  locust:
+    image: locustio/locust
+    container_name: locust
+    ports:
+      - "444:8089"
+    volumes:
+      - .:/app
+    working_dir: /app
+    depends_on:
+      - optimus-car-app
+    command: >
+      -f /app/locust/locustfile.py
+      --host=http://0.0.0.0:8000
+      --web-port=8089

@@ -15,9 +15,13 @@ INFER_WIDTH = 256
 INFER_HEIGHT = 256
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-unet_model = torch.jit.load(UNET_MODEL_PATH, map_location=device)
-unet_model.eval()
-preprocessing_fn = smp.encoders.get_preprocessing_fn(ENCODER, ENCODER_WEIGHTS)
+try:
+    unet_model = torch.jit.load(UNET_MODEL_PATH, map_location=device)
+    unet_model.eval()
+    preprocessing_fn = smp.encoders.get_preprocessing_fn(ENCODER, ENCODER_WEIGHTS)
+except Exception as e:
+    print(e)
+    print('UNet model was not loaded.')
 
 
 def to_tensor(x: np.ndarray, **kwargs) -> np.ndarray:

@@ -16,21 +16,22 @@
 Background Blur / Crop / Face Blur / Замена Фона
 
 ## Локальный запуск через Docker
-Перейдя в директорию репозитория
+Перед запуском нужно установить веса SAM и UNet в папку `model_weights` на уровень нже (если они будут использоваться, вес около 3 Гб) с помощью скрипта
 ```
-docker-compose up
+sh ./run.sh
 ```
-Затем перейти по адресу http://localhost:8080/lab/tree/car_segmentation.ipynb
+Если веса уже установлены или эта модель не будет использоваться, то, перейдя в директорию репозитория в папку `/project`:
 
-## Запуск в Kaggle
-Загрузить файл requirements.txt в Kaggle (правда могут быть конфликты, т.к. Kaggle не даёт изменять версию Python, в этом случае нужно закомментировать ошибки через #).
 
+Запуск с CUDA:
 ```
-!pip install -r <Путь к requirements.txt>
+docker compose -f docker-compose.gpu.yml up --build
 ```
 
-## Установка новых библиотек
-Стоит добавить их в environment.yml и для сохранения `requirements.txt`
+Запуск без использования CUDA:
 ```
-!pip list --format=freeze > requirements.txt
+docker compose -f docker-compose.cpu.yml up --build
 ```
+
+Веб приложение будет доступно по адресу 
+http://localhost:443/
