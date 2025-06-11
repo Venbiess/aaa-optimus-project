@@ -39,7 +39,6 @@ async def compose(foreground: UploadFile = File(...), mask: UploadFile = File(..
         foreground_np = cv2.imdecode(np.frombuffer(foreground_data, np.uint8), cv2.IMREAD_COLOR)
         mask_np = cv2.imdecode(np.frombuffer(mask_data, np.uint8), cv2.IMREAD_GRAYSCALE)
         mask_np = (mask_np != 0).astype(np.uint8) * 255  # ensures mask is 0 or 255
-        print(np.unique(mask_np), np.max(mask_np), mask_np.shape)
         if foreground_np is None or mask_np is None:
             raise ValueError("Could not decode one or both images")
 
